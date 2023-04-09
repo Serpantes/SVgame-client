@@ -2,6 +2,7 @@ import Vue from "vue";
 import Vuex from "vuex";
 import ws from "./modules/ws/index";
 import user from "./modules/user/index";
+import game from "./modules/game/index";
 
 Vue.use(Vuex);
 
@@ -19,5 +20,6 @@ export default new Vuex.Store({
   modules: {
     ws,
     user,
+    game,
   },
 });

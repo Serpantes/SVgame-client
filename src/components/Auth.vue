@@ -8,13 +8,12 @@
   </template>
   
   <script>
-import { mapActions, mapGetters, mapMutations } from 'vuex';
+import { mapActions, mapGetters, mapMutations, mapState } from 'vuex';
 
   export default {
     name: "Auth-input",
     data() {
       return {
-        loading: false
       };
     },
   
@@ -25,6 +24,7 @@ import { mapActions, mapGetters, mapMutations } from 'vuex';
     computed: {
         ...mapGetters("ws", ["ws"]),
         ...mapGetters("user", ["getUsername"]),
+        ...mapState("ws", {loading: "authing"}),
         username:{
             get(){
               return this.getUsername
@@ -37,9 +37,10 @@ import { mapActions, mapGetters, mapMutations } from 'vuex';
     methods:{
         ...mapActions("ws", ["auth"]),
         ...mapMutations("user", {setUsername: "SET_USERNAME"}),
+        ...mapMutations("ws", {setLoading : "SET_AUTH"}),
       authButton(){
         this.$log.debug("Trying to auth with name ", this.username)
-        this.loading = true
+        this.setLoading("auth", true)
         this.auth()
       }
     }

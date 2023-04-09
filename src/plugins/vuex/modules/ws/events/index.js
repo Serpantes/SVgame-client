@@ -1,5 +1,7 @@
-import { test } from "./test";
+import { result } from "./result";
+import { stateFull } from "./stateFull";
 
 export default {
-  test,
+  result,
+  stateFull,
 };

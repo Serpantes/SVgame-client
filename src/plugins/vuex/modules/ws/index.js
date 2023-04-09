@@ -1,5 +1,6 @@
 import { log } from "@/plugins/logger/index";
 import eventHandlers from "./events";
+import * as types from "./mutation-types";
 
 const ws = {
   namespaced: true,
@@ -7,28 +8,56 @@ const ws = {
     ws: null,
     isAuthed: false,
     isOnline: false,
+    authing: false,
+    wsError: "",
   },
-  mutations: {},
+  mutations: {
+    [types.SET_AUTH](state, status) {
+      state.isAuthed = status;
+    },
+    [types.SET_WS_CONN_STATUS](state, status) {
+      state.isOnline = status;
+    },
+    [types.SET_LOADING](state, type, status) {
+      switch (type) {
+        case "auth":
+          state.authing = status;
+      }
+    },
+    [types.SET_WS_ERROR](state, error) {
+      if (error != "") {
+        log.error(error);
+      }
+      state.wsError = error;
+      setTimeout(function () {
+        state.wsError = "";
+      }, 5000);
+    },
+  },
   actions: {
-    auth({ state, rootState }) {
+    resetError({ commit }) {
+      log.debug("Reseting error");
+      commit(types.SET_WS_ERROR, "");
+    },
+    auth({ state, rootState, commit }) {
       log.debug("Auth action");
-      state.isAuthed = false;
+      commit(types.SET_AUTH, false);
       if (!state.isOnline) {
         log.warn("Can't auth! WS not connected!");
         return;
       }
       state.ws.send(
         JSON.stringify({
-          command: "test",
+          command: "auth",
           data: { name: rootState.user.username },
         })
       );
     },
-    connectWs({ state, dispatch }) {
+    connectWs({ state, dispatch, commit }) {
       log.debug("Connecting to server");
-      state.isOnline = false;
+      commit(types.SET_WS_CONN_STATUS, false);
       try {
-        state.ws = new WebSocket(process.env.VUE_APP_BACKEND_WS_URL);
+        state.ws = new WebSocket(process.env.VUE_APP_BACKEND_WS_URL + "");
         state.ws.onopen = (e) => dispatch("onWsConnected", e);
         state.ws.onmessage = (e) => dispatch("onWsMessage", e);
         //TODO
@@ -36,14 +65,19 @@ const ws = {
         // state.ws.onclose = (e) => dispatch("onWsDisconnected", e);
       } catch (e) {
         state.ws = null;
-        state.isOnline = false;
+        commit(types.SET_WS_CONN_STATUS, false);
         throw new Error(e.message);
       }
     },
-    onWsConnected({ state }, e) {
+    onWsConnected({ state, commit }, e) {
       log.debug("WS connected", e);
-      state.isOnline = true;
-      state.ws.send("Hi, im vue app");
+      commit(types.SET_WS_CONN_STATUS, true);
+      state.ws.send(
+        JSON.stringify({
+          command: "hello",
+          data: {},
+        })
+      );
     },
     onWsMessage(store, e) {
       //TODO heartbeat
@@ -58,6 +92,12 @@ const ws = {
       }
 
       const commandName = event?.command;
+
+      if (commandName == "hello") {
+        log.debug("Server hello");
+        return;
+      }
+
       if (!eventHandlers[commandName])
         return log.warn(`Unknown command `, commandName);
 
@@ -73,6 +113,9 @@ const ws = {
     },
     isOnline(state) {
       return state.isOnline;
+    },
+    wsError(state) {
+      return state.wsError;
     },
   },
 };
